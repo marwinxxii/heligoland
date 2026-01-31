@@ -20,5 +20,6 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "heligoland"
+include(":grammar")
 include(":interpreter")
-include(":editor")
+include(":parser")

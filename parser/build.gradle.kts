@@ -16,8 +16,7 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
-    api(libs.kotlin.coroutines)
-    api(project(":parser"))
+    implementation(project(":grammar"))
     testImplementation(libs.kotlin.kotest)
     testImplementation(libs.kotlin.kotest.property)
     testImplementation(libs.kotlin.kotest.junit5)
