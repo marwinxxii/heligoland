@@ -13,6 +13,17 @@ kotlin {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    providers
+        .gradleProperty("snapshots.record")
+        .also {
+            if (it.isPresent) {
+                environment("selfie", "overwrite")
+            } else {
+                environment("selfie", "readonly")
+            }
+        }
+    inputs.files(layout.projectDirectory.dir("src/test").files("**/*.ss"))
+    systemProperty("kotest.framework.config.fqn", "h8d.parser.testharness.KotestConfig")
 }
 
 dependencies {
@@ -20,4 +31,5 @@ dependencies {
     testImplementation(libs.kotlin.kotest)
     testImplementation(libs.kotlin.kotest.property)
     testImplementation(libs.kotlin.kotest.junit5)
+    testImplementation(libs.selfie)
 }

@@ -1,5 +1,5 @@
 [versions]
-kotest = "6.1.2"
+kotest = "6.1.2" # test runner
 jvmToolchain = "25"
 antlr-kotlin = "1.0.9" # parser generator
 
@@ -14,3 +14,4 @@ kotlin-kotest = { module = "io.kotest:kotest-assertions-core", version.ref = "ko
 kotlin-kotest-property = { module = "io.kotest:kotest-property", version.ref = "kotest" }
 kotlin-kotest-junit5 = { module = "io.kotest:kotest-runner-junit5", version.ref = "kotest" }
 antlr-kotlin = { module = "com.strumenta:antlr-kotlin-runtime", version.ref = "antlr-kotlin" }
+selfie = { module = "com.diffplug.selfie:selfie-runner-kotest", version = "2.5.5-SNAPSHOT" } # snapshot testing
