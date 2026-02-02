@@ -1,10 +1,15 @@
 [versions]
+kotlin = "2.3.0"
+compose = "1.10.0"
 kotest = "6.1.2" # test runner
 jvmToolchain = "25"
 antlr-kotlin = "1.0.9" # parser generator
 
 [plugins]
-kotlin = { id = "org.jetbrains.kotlin.jvm", version = "2.3.0" }
+kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+compose-compiler = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
+compose = { id = "org.jetbrains.compose", version.ref = "compose" }
 kotest = { id = "io.kotest", version.ref = "kotest" }
 antlr-kotlin = { id = "com.strumenta.antlr-kotlin", version.ref = "antlr-kotlin" }
 

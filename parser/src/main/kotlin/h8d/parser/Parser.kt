@@ -33,10 +33,9 @@ public sealed interface ParseResult {
     public data class Error internal constructor(val errors: List<ParsingError>) : ParseResult
 }
 
-public fun parse(sourceCode: String): ParseResult {
+public fun parseProgram(sourceCode: String): ParseResult {
     val errorCollector = ParsingErrorCollector()
-    return HeligolandParser(CommonTokenStream(HeligolandLexer(StringCharStream(sourceCode))))
-        .apply { addErrorListener(errorCollector) }
+    return sourceCode.toParser(errorCollector)
         .program()
 //        .also { it.exception?.also(errorCollector::onErrorFromNode) }
         .children
@@ -63,6 +62,14 @@ public fun parse(sourceCode: String): ParseResult {
             }
         }
 }
+
+public fun validateSourceCode(sourceCode: String): List<ParsingError> =
+    ParsingErrorCollector().also { sourceCode.toParser(it).program() }
+        .collectedErrors
+
+private fun String.toParser(errorListener: ANTLRErrorListener): HeligolandParser =
+    HeligolandParser(CommonTokenStream(HeligolandLexer(StringCharStream(this))))
+        .apply { addErrorListener(errorListener) }
 
 private fun emptySourceCodeError() =
     ParsingErrorDescriptor(position = null, message = "Source code couldn't be parsed. Is it empty?")

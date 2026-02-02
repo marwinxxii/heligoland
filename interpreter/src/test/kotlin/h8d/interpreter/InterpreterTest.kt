@@ -1,7 +1,7 @@
 package h8d.interpreter
 
 import h8d.parser.ParseResult
-import h8d.parser.parse
+import h8d.parser.parseProgram
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
 
@@ -14,7 +14,7 @@ internal class InterpreterTest : ShouldSpec({
 })
 
 private infix fun String.shouldOutput(singleLine: String) =
-    parse(this)
+    parseProgram(this)
         .let { it as ParseResult.SuccessfulProgram }
         .program
         .let(Interpreter()::executeBlocking)

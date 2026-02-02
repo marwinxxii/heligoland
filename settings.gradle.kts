@@ -21,6 +21,8 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "heligoland"
+include(":apps:ide")
+include(":editor")
 include(":grammar")
 include(":interpreter")
 include(":parser")

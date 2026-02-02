@@ -2,10 +2,10 @@ package h8d.parser.testharness
 
 import com.diffplug.selfie.coroutines.expectSelfie
 import h8d.parser.ParseResult
-import h8d.parser.parse
+import h8d.parser.parseProgram
 
 internal suspend fun String.shouldMatchParseResultSnapshot() {
-    when (val result = parse(this)) {
+    when (val result = parseProgram(this)) {
         is ParseResult.SuccessfulProgram ->
             shouldMatchSnapshot(result.program.nodes.joinToString(separator = "\n"))
 
