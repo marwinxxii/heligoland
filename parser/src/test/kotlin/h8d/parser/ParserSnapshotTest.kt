@@ -12,7 +12,7 @@ internal class ParserSnapshotTest : FunSpec({
     test("empty") {
         "".shouldMatchParseResultSnapshot()
     }
-    test("invalid") {
+    test("unknown function") {
         """println("Hello, World!")""".shouldMatchParseResultSnapshot()
     }
 })

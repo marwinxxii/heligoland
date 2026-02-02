@@ -15,12 +15,22 @@ import org.antlr.v4.kotlinruntime.atn.ATNConfigSet
 import org.antlr.v4.kotlinruntime.dfa.DFA
 
 public sealed interface ParsingError {
+    public val position: Position?
+    public val message: String
+
+    @ConsistentCopyVisibility
+    public data class Position internal constructor(
+        val lineNumber: Int,
+        val characterPosition: Int?,
+    )
 }
 
 public sealed interface ParseResult {
-    public data class SuccessfulProgram(val program: Program) : ParseResult
+    @ConsistentCopyVisibility
+    public data class SuccessfulProgram internal constructor(val program: Program) : ParseResult
 
-    public data class Error(val errors: List<String>) : ParseResult
+    @ConsistentCopyVisibility
+    public data class Error internal constructor(val errors: List<ParsingError>) : ParseResult
 }
 
 public fun parse(sourceCode: String): ParseResult {
@@ -44,7 +54,7 @@ public fun parse(sourceCode: String): ParseResult {
                 nodes == null ->
                     collectedErrors
                         .takeIf { it.isNotEmpty() }
-                        .let { it ?: listOf("Source code couldn't be parsed. Is it empty?") }
+                        .let { it ?: listOf(emptySourceCodeError()) }
                         .let(ParseResult::Error)
 
                 collectedErrors.isNotEmpty() -> ParseResult.Error(collectedErrors)
@@ -53,6 +63,9 @@ public fun parse(sourceCode: String): ParseResult {
             }
         }
 }
+
+private fun emptySourceCodeError() =
+    ParsingErrorDescriptor(position = null, message = "Source code couldn't be parsed. Is it empty?")
 
 private data class ProgramImpl(override val nodes: List<StatementNode>) : Program
 
@@ -64,10 +77,15 @@ private fun HeligolandParser.PrintContext.toNode(): StatementNode =
         ?.removeSuffix("${'"'}")
         ?.let(StatementNode::PrintNode)!!
 
-private class ParsingErrorCollector : ANTLRErrorListener {
-    private val errors = mutableListOf<String>()
+private data class ParsingErrorDescriptor(
+    override val position: ParsingError.Position?,
+    override val message: String,
+) : ParsingError
 
-    val collectedErrors: List<String> get() = errors
+private class ParsingErrorCollector : ANTLRErrorListener {
+    private val errors = mutableListOf<ParsingError>()
+
+    val collectedErrors: List<ParsingError> get() = errors
 
 //    fun onErrorFromNode(e: RecognitionException) {
 //        errors.add(e.message!!)
@@ -81,7 +99,10 @@ private class ParsingErrorCollector : ANTLRErrorListener {
         msg: String,
         e: RecognitionException?,
     ) {
-        errors.add(msg)
+        ParsingErrorDescriptor(
+            ParsingError.Position(lineNumber = line, characterPosition = charPositionInLine),
+            message = msg,
+        ).also(errors::add)
     }
 
     override fun reportAmbiguity(
