@@ -3,9 +3,18 @@ package h8d.editor
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.StateFlow
 
+/**
+ * Virtual editor for running code analysis and executing the program.
+ */
 public interface Editor {
+    /**
+     * State of editor, with analysis results.
+     */
     public val state: StateFlow<State>
 
+    /**
+     * Update the state of the editor and trigger the analysis of the code.
+     */
     public fun submitUpdate(code: String)
 
     public sealed interface State {

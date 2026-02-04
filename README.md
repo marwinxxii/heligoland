@@ -19,6 +19,8 @@ Micro language, interpreter and IDE.
 ## Important notes
 1. Snapshot tests in `:parser` module rely on the [unreleased fix in selfie](https://github.com/diffplug/selfie/pull/559)
     - Note: this snapshot can't be published on JDK 25 (Dokkatoo fails), 21 can be used instead
+2. Selfie does not support snapshot tests for parameterized tests for Kotest,
+see [local fix](selfie-parameterized-tests.patch)
 
 ## TODO
 1. Finalise parser

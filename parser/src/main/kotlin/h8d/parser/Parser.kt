@@ -63,6 +63,7 @@ public fun parseProgram(sourceCode: String): ParseResult {
 
 public fun validateSourceCode(sourceCode: String): List<ParsingError> =
     ParsingErrorCollector().also { sourceCode.toParser(it).program() }
+        // TODO add tree validation
         .collectedErrors
 
 private fun String.toParser(errorListener: ANTLRErrorListener): HeligolandParser =
