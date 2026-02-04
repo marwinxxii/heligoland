@@ -2,6 +2,7 @@ package h8d.parser
 
 import com.strumenta.antlrkotlin.runtime.BitSet
 import h8d.parser.Program.StatementNode
+import h8d.parser.Program.StatementNode.ExpressionNode
 import h8d.parsers.generated.HeligolandBaseVisitor
 import h8d.parsers.generated.HeligolandLexer
 import h8d.parsers.generated.HeligolandParser
@@ -15,14 +16,8 @@ import org.antlr.v4.kotlinruntime.atn.ATNConfigSet
 import org.antlr.v4.kotlinruntime.dfa.DFA
 
 public sealed interface ParsingError {
-    public val position: Position?
+    public val pointer: SourceCodePointer?
     public val message: String
-
-    @ConsistentCopyVisibility
-    public data class Position internal constructor(
-        val lineNumber: Int,
-        val characterPosition: Int?,
-    )
 }
 
 public sealed interface ParseResult {
@@ -42,6 +37,9 @@ public fun parseProgram(sourceCode: String): ParseResult {
         ?.mapNotNull {
             it.accept(object : HeligolandBaseVisitor<StatementNode?>() {
                 override fun visitPrint(ctx: HeligolandParser.PrintContext) = ctx.toNode()
+
+                override fun visitOutput(ctx: HeligolandParser.OutputContext) =
+                    ctx.toNode()
 
                 override fun defaultResult(): StatementNode? = null
             })
@@ -72,20 +70,48 @@ private fun String.toParser(errorListener: ANTLRErrorListener): HeligolandParser
         .apply { addErrorListener(errorListener) }
 
 private fun emptySourceCodeError() =
-    ParsingErrorDescriptor(position = null, message = "Source code couldn't be parsed. Is it empty?")
+    ParsingErrorDescriptor(pointer = null, message = "Source code couldn't be parsed. Is it empty?")
 
 private data class ProgramImpl(override val nodes: List<StatementNode>) : Program
 
-private fun HeligolandParser.PrintContext.toNode(): StatementNode =
-    StringLiteral()
-        .symbol
-        .text
-        ?.removePrefix("${'"'}")
-        ?.removeSuffix("${'"'}")
-        ?.let(StatementNode::PrintNode)!!
+private fun HeligolandParser.PrintContext.toNode() =
+    StringLiteral().let {
+        StatementNode.PrintNode(
+            pointer = null,
+            value = it.symbol
+                .text
+                ?.removePrefix("${'"'}")
+                ?.removeSuffix("${'"'}")!!,
+        )
+    }
+
+private fun HeligolandParser.OutputContext.toNode() =
+    StatementNode.OutputNode(
+        pointer = null,
+        expression = expr().toNode(),
+    )
+
+private fun HeligolandParser.ExprContext.toNode() =
+    number()?.toNode()
+        ?: identifier()?.toNode()
+        ?: error("Unsupported expression")
+
+private fun HeligolandParser.NumberContext.toNode() =
+    (LongLiteral() ?: DoubleLiteral())!!.let {
+        ExpressionNode.NumberLiteral(
+            pointer = null,
+            value = if (it.text.contains('.')) it.text.toDouble() else it.text.toLong(),
+        )
+    }
+
+private fun HeligolandParser.IdentifierContext.toNode() =
+    ExpressionNode.VariableReferenceNode(
+        pointer = null,
+        variableName = this.text,
+    )
 
 private data class ParsingErrorDescriptor(
-    override val position: ParsingError.Position?,
+    override val pointer: SourceCodePointer?,
     override val message: String,
 ) : ParsingError
 
@@ -107,7 +133,9 @@ private class ParsingErrorCollector : ANTLRErrorListener {
         e: RecognitionException?,
     ) {
         ParsingErrorDescriptor(
-            ParsingError.Position(lineNumber = line, characterPosition = charPositionInLine),
+            pointer = SourceCodePointer.Position(lineNumber = line, characterPosition = charPositionInLine).let {
+                SourceCodePointer(it, it)
+            },
             message = msg,
         ).also(errors::add)
     }

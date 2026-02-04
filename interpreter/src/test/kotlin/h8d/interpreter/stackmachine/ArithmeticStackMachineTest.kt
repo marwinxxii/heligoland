@@ -1,12 +1,9 @@
-package h8d.stackmachine
+package h8d.interpreter.stackmachine
 
 import h8d.interpreter.memory.ScalarMemory
-import h8d.interpreter.stackmachine.StackInstruction
-import h8d.interpreter.stackmachine.StackInstruction.Add
-import h8d.interpreter.stackmachine.StackInstruction.PushDouble
-import h8d.interpreter.stackmachine.StackInstruction.PushLong
-import h8d.interpreter.stackmachine.StackInstruction.Subtract
-import h8d.interpreter.stackmachine.computeOnStackMachine
+import h8d.interpreter.stackmachine.ArithmeticInstruction.Add
+import h8d.interpreter.stackmachine.ArithmeticInstruction.Subtract
+import h8d.interpreter.stackmachine.StackInstruction.Push
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withTests
 import io.kotest.matchers.doubles.shouldBeGreaterThanOrEqual
@@ -15,7 +12,7 @@ import io.kotest.matchers.shouldBe
 
 // test run by Kotest
 @Suppress("unused")
-internal class StackMachineTest : FunSpec({
+internal class ArithmeticStackMachineTest : FunSpec({
     context("Addition") {
         withTests(
             nameFn = ::binaryOperationTestName,
@@ -37,7 +34,7 @@ internal class StackMachineTest : FunSpec({
             ),
         ) {
             val (instructions, expected) = it
-            computeOnStackMachine(instructions, ScalarMemory.Empty) shouldBe expected
+            computeOnStackMachine(instructions, ScalarMemory.empty()) shouldBe expected
         }
     }
     context("Subtraction") {
@@ -61,7 +58,7 @@ internal class StackMachineTest : FunSpec({
             ),
         ) { testCase ->
             val (instructions, expected) = testCase
-            computeOnStackMachine(instructions, ScalarMemory.Empty).also {
+            computeOnStackMachine(instructions, ScalarMemory.empty()).also {
                 when (it) {
                     is Double -> it.shouldBeEqualWithTolerance(expected.toDouble())
                     else -> it shouldBe expected
@@ -81,25 +78,24 @@ private fun Double.shouldBeEqualWithTolerance(expected: Double, tolerance: Doubl
 
 private fun binaryOperation(
     left: Long,
-    operation: StackInstruction,
+    operation: ArithmeticInstruction,
     right: Long,
     shouldBe: Long,
-) = listOf(PushLong(left), PushLong(right), operation) to shouldBe
+) = listOf<StackInstruction<Number>>(Push(left), Push(right), operation) to shouldBe
 
 private fun binaryOperation(
     left: Double,
-    operation: StackInstruction,
+    operation: ArithmeticInstruction,
     right: Double,
     shouldBe: Double,
-) = listOf(PushDouble(left), PushDouble(right), operation) to shouldBe
+) = listOf<StackInstruction<Number>>(Push(left), Push(right), operation) to shouldBe
 
-private fun binaryOperationTestName(testCase: Pair<List<StackInstruction>, Number>) =
+private fun binaryOperationTestName(testCase: Pair<List<StackInstruction<Number>>, Number>) =
     "${testCase.first[0].name} ${testCase.first[2]} ${testCase.first[1].name} = ${testCase.second}"
 
-private val StackInstruction.name: String
+private val StackInstruction<*>.name: String
     get() =
         when (this) {
-            is PushLong -> value.toString()
-            is PushDouble -> value.toString()
+            is Push<*> -> value.toString()
             else -> toString()
         }

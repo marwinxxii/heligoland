@@ -2,8 +2,13 @@ package h8d.interpreter
 
 import h8d.interpreter.memory.Address
 import h8d.interpreter.memory.ScalarMemory
+import h8d.interpreter.stackmachine.StackInstruction
+import h8d.interpreter.stackmachine.StackInstruction.Push
+import h8d.interpreter.stackmachine.StackInstruction.ValueStack
 import h8d.interpreter.stackmachine.computeOnStackMachine
 import h8d.parser.Program
+import h8d.parser.Program.StatementNode
+import h8d.parser.Program.StatementNode.ExpressionNode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -21,13 +26,12 @@ private class SimpleInterpreter : Interpreter {
     override fun execute(program: Program): Flow<String> =
         flow {
             val context = ExecutionContext()
+            val instructions = mutableListOf<StackInstruction<VV>>()
             for (node in program.nodes) {
-                // create a list of instructions
-                // iterate over them
-                // wait till next instruction is evaluated
-                node.toInstructions().forEach { it.execute(context) }
-                // TODO check look ahead limit
+                instructions.addInstructions(node, context)
+                // look ahead implementation for parallel execution can be implemented here
             }
+            computeOnStackMachine(instructions, context.memory)
             emitAll(context.output)
         }
 }
@@ -53,11 +57,46 @@ public fun Interpreter.executeBlocking(program: Program): String =
 //    }
 //}
 
-private fun Program.StatementNode.toInstructions(): List<InterpreterInstruction> =
-    when (this) {
-        is Program.StatementNode.PrintNode -> InterpreterInstruction.PrintString(this.value)
-        else -> null
-    }.let(::listOfNotNull)
+private fun MutableList<StackInstruction<VV>>.addInstructions(node: StatementNode, context: ExecutionContext) = apply {
+    when (node) {
+        is StatementNode.PrintNode -> {
+            add(Push(node.value))
+            add(II.Print(context))
+        }
+        is StatementNode.OutputNode -> {
+            addInstructions(node.expression, context)
+            add(II.Print(context))
+        }
+//        is StatementNode.VariableAssignmentNode -> node.expression.addInstructions(this, address)
+        else -> Unit
+    }
+}
+
+private fun MutableList<StackInstruction<VV>>.addInstructions(node: ExpressionNode, context: ExecutionContext) = apply {
+    when (node) {
+        is ExpressionNode.NumberLiteral -> add(Push(node.value))
+//        is ExpressionNode.VariableReferenceNode -> add(Load(memory.getAddress(node.variableName)))
+        else -> Unit
+    }
+}
+
+private typealias VV = Any
+
+internal interface II : StackInstruction<VV> {
+    data class Store(private val address: Address) : II {
+        override fun execute(stack: ValueStack<VV>, memory: ScalarMemory<VV>): VV? {
+            memory.writeValue(address, stack.pop())
+            return null
+        }
+    }
+
+    data class Print(private val context: ExecutionContext) : II {
+        override fun execute(stack: ValueStack<VV>, memory: ScalarMemory<VV>): VV? {
+            context.output(stack.pop().toString())
+            return null
+        }
+    }
+}
 
 internal class ExecutionContext {
     val memory: Memory = object : Memory {
@@ -81,10 +120,25 @@ internal class ExecutionContext {
             TODO("Not yet implemented")
         }
 
-        override fun readNumber(address: Address): Number {
+        override fun readValue(address: Address): Number {
             TODO("Not yet implemented")
         }
 
+        override fun writeValue(address: Address, value: VV) {
+            TODO("Not yet implemented")
+        }
+
+        override fun read(address: Address): Any {
+            TODO()
+        }
+
+        override fun nextAddress(): Address {
+            TODO("Not yet implemented")
+        }
+
+        fun getAddress(variableName: String): Address {
+            TODO()
+        }
     }
 
     private val outputLines = mutableListOf<String>()
@@ -96,7 +150,7 @@ internal class ExecutionContext {
     val output: Flow<String> get() = flowOf(outputLines.joinToString(separator = ""))
 }
 
-internal interface Memory : ScalarMemory {
+internal interface Memory : ScalarMemory<VV> {
     fun write(address: Address, value: Sequence<Number>)
 
     fun write(address: Address, value: Number)
@@ -106,6 +160,10 @@ internal interface Memory : ScalarMemory {
     fun isValueAvailable(address: Address): Boolean
 
     fun <T> readSequence(address: Address): Sequence<T>
+
+    fun read(address: Address): Any
+
+    fun nextAddress(): Address
 }
 
 internal sealed interface Value<T : Any> {
@@ -121,28 +179,11 @@ internal sealed interface InterpreterInstruction {
 
     fun execute(context: ExecutionContext)
 
-    data class PrintValue(
-        private val address: Address,
-        override val requiredValues: Set<Long>,
-    ) : InterpreterInstruction {
-        override fun execute(context: ExecutionContext) {
-            context.output(context.memory.readNumber(address).toString())
-        }
-    }
-
-    data class PrintString(private val value: String) : InterpreterInstruction {
-        override val requiredValues: Set<Long> get() = emptySet()
-
-        override fun execute(context: ExecutionContext) {
-            context.output(value)
-        }
-    }
-
     data class MapSeq(
         private val address: Address?,
         private val sequenceAddress: Address,
         private val expression: Any,
-        override val requiredValues: Set<Long>,
+        override val requiredValues: Set<Long> = emptySet(),
     ) : InterpreterInstruction {
         override fun execute(context: ExecutionContext) {
             context.memory.readSequence<Number>(sequenceAddress)
@@ -184,7 +225,7 @@ internal sealed interface InterpreterInstruction {
                 // compile
                 // execute
                 // write
-                context.memory.write(it, computeOnStackMachine(emptyList(), context.memory))
+                //ontext.memory.write(it, computeOnStackMachine(emptyList(), context.memory))
             }
         }
     }

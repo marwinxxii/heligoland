@@ -46,8 +46,8 @@ internal class EditorImpl(
 
 private fun ParsingError.toStateModel() =
     StateImpl.ErrorImpl(
-        lineNumber = position?.lineNumber?.toUInt() ?: 1U,
-        spanStart = position?.characterPosition?.toUInt() ?: 1U,
+        lineNumber = pointer?.start?.lineNumber?.toUInt() ?: 1U,
+        spanStart = pointer?.start?.characterPosition?.toUInt() ?: 1U,
         spanEnd = null,
         message = this.message,
     )

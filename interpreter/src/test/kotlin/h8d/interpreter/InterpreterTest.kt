@@ -1,21 +1,19 @@
 package h8d.interpreter
 
-import h8d.parser.ParseResult
-import h8d.parser.parseProgram
-import io.kotest.core.spec.style.ShouldSpec
-import io.kotest.matchers.shouldBe
+import h8d.interpreter.testharness.shouldExecuteAndOutput
+import io.kotest.core.spec.style.FunSpec
+import io.kotest.datatest.withData
 
 // run by Kotest
 @Suppress("unused")
-internal class InterpreterTest : ShouldSpec({
-    should("print hello world") {
-        """print "Hello, World!"""" shouldOutput "Hello, World!"
+internal class InterpreterTest : FunSpec({
+    context("program execution and output") {
+        listOf(
+            """print "Hello, World!"""",
+            "out 100",
+        )
+            .also { programs ->
+                withData(programs) { it.shouldExecuteAndOutput() }
+            }
     }
 })
-
-private infix fun String.shouldOutput(singleLine: String) =
-    parseProgram(this)
-        .let { it as ParseResult.SuccessfulProgram }
-        .program
-        .let(Interpreter()::executeBlocking)
-        .shouldBe(singleLine)
