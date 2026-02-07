@@ -31,6 +31,9 @@ private val validPrograms = listOf(
         var l = 123
         out {f, l}
     """,
+    """
+        out 10+20
+    """,
 )
 // run by Kotest
 @Suppress("unused")

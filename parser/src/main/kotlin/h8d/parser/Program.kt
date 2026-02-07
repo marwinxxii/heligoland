@@ -39,11 +39,21 @@ public interface Program {
                 val variableName: String,
             ) : ExpressionNode
 
-            public data class ArithmeticNode(
+            public data class BinaryOperationNode(
                 override val pointer: SourceCodePointer?,
                 val left: ExpressionNode,
+                val operation: Operation,
                 val right: ExpressionNode,
-            ) : ExpressionNode
+            ) : ExpressionNode {
+                public enum class Operation {
+                    ADDITION,
+                    SUBTRACTION,
+                    MULTIPLICATION,
+                    DIVISION,
+                    EXPONENTIATION,
+                    ;
+                }
+            }
         }
     }
 }

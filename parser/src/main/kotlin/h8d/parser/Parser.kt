@@ -3,6 +3,7 @@ package h8d.parser
 import com.strumenta.antlrkotlin.runtime.BitSet
 import h8d.parser.Program.StatementNode
 import h8d.parser.Program.StatementNode.ExpressionNode
+import h8d.parser.Program.StatementNode.ExpressionNode.BinaryOperationNode
 import h8d.parsers.generated.HeligolandBaseVisitor
 import h8d.parsers.generated.HeligolandLexer
 import h8d.parsers.generated.HeligolandParser
@@ -106,7 +107,7 @@ private fun HeligolandParser.ExprContext.toNode() =
     number()?.toNode()
         ?: identifier()?.toNode()
         ?: sequence()?.toNode()
-        ?: error("Unsupported expression")
+        ?: binaryOperationNode(expr(0)!!, op()!!, expr(1)!!)
 
 private fun HeligolandParser.NumberContext.toNode() =
     (LongLiteral() ?: DoubleLiteral())!!.let {
@@ -128,6 +129,29 @@ private fun HeligolandParser.SequenceContext.toNode(): ExpressionNode.SeqNode =
         first = this.expr(0)!!.toNode(),
         last = this.expr(1)!!.toNode(),
     )
+
+private fun binaryOperationNode(
+    left: HeligolandParser.ExprContext,
+    op: HeligolandParser.OpContext,
+    right: HeligolandParser.ExprContext,
+): BinaryOperationNode =
+    BinaryOperationNode(
+        pointer = null,
+        left = left.toNode(),
+        operation = op.toOperation(),
+        right = right.toNode(),
+    )
+
+private fun HeligolandParser.OpContext.toOperation() =
+    when (this.text) {
+        "+" -> BinaryOperationNode.Operation.ADDITION
+        "-" -> BinaryOperationNode.Operation.SUBTRACTION
+        "*" -> BinaryOperationNode.Operation.MULTIPLICATION
+        "/" -> BinaryOperationNode.Operation.DIVISION
+        "^" -> BinaryOperationNode.Operation.EXPONENTIATION
+        // TODO better error handling
+        else -> error("Unknown binary operation: ${this.text}")
+    }
 
 private data class ParsingErrorDescriptor(
     override val pointer: SourceCodePointer?,

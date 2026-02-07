@@ -20,4 +20,6 @@ OutputNode(pointer=null, expression=SeqNode(pointer=null, first=VariableReferenc
 VariableAssignmentNode(pointer=null, variableName=f, expression=NumberLiteral(pointer=null, value=100))
 VariableAssignmentNode(pointer=null, variableName=l, expression=NumberLiteral(pointer=null, value=123))
 OutputNode(pointer=null, expression=SeqNode(pointer=null, first=VariableReferenceNode(pointer=null, variableName=f), last=VariableReferenceNode(pointer=null, variableName=l)))
+╔═ Valid programs-7: out 10+20 ═╗
+OutputNode(pointer=null, expression=BinaryOperationNode(pointer=null, left=NumberLiteral(pointer=null, value=10), operation=ADDITION, right=NumberLiteral(pointer=null, value=20)))
 ╔═ [end of file] ═╗

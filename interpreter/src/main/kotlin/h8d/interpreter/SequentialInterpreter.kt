@@ -3,6 +3,7 @@ package h8d.interpreter
 import h8d.interpreter.InterpreterInstruction.Store
 import h8d.interpreter.memory.Address
 import h8d.interpreter.memory.ScalarMemory
+import h8d.interpreter.stackmachine.ArithmeticInstruction
 import h8d.interpreter.stackmachine.StackInstruction
 import h8d.interpreter.stackmachine.StackInstruction.Push
 import h8d.interpreter.stackmachine.StackInstruction.ValueStack
@@ -10,6 +11,7 @@ import h8d.interpreter.stackmachine.computeOnStackMachine
 import h8d.parser.Program
 import h8d.parser.Program.StatementNode
 import h8d.parser.Program.StatementNode.ExpressionNode
+import h8d.parser.Program.StatementNode.ExpressionNode.BinaryOperationNode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.flow
@@ -81,9 +83,31 @@ private fun MutableInstructionsList.addInstructions(
                 add(InterpreterInstruction.Seq)
             }
 
-            else -> TODO("Implement the rest of expressions")
+            is BinaryOperationNode -> {
+                addInstructions(node.left, context)
+                addInstructions(node.right, context)
+                addInstruction(node.operation)
+            }
+
+//            else -> TODO("Implement the rest of expressions")
         }
     }
+
+private fun MutableInstructionsList.addInstruction(
+    operation: BinaryOperationNode.Operation,
+) = apply {
+    when(operation) {
+        BinaryOperationNode.Operation.ADDITION -> ArithmeticInstruction.Add
+        BinaryOperationNode.Operation.SUBTRACTION -> ArithmeticInstruction.Subtract
+        BinaryOperationNode.Operation.MULTIPLICATION -> ArithmeticInstruction.Multiply
+        BinaryOperationNode.Operation.DIVISION -> ArithmeticInstruction.Divide
+        BinaryOperationNode.Operation.EXPONENTIATION -> ArithmeticInstruction.RaiseToPower
+    }.also {
+        // TODO fix the types
+        @Suppress("UNCHECKED_CAST")
+        add(it as StackInstruction<Value>)
+    }
+}
 
 private typealias Value = Any
 
@@ -131,18 +155,23 @@ internal interface InterpreterInstruction : StackInstruction<Value> {
      * Single instruction which encapsulates arithmetic computations.
      * Is executed on a separate stack, can be parallelised.
      */
-    data class Arithmetic(
-        private val operation: Any,
-    ) : InterpreterInstruction {
-        override fun execute(
-            stack: ValueStack<Value>,
-            memory: ScalarMemory<Value>,
-        ): Value? {
-            // computeOnStackMachine
-            // push the value on stack
-            return null
-        }
-    }
+//    data class BinaryOperation(
+//        private val operation: BinaryOperationNode.Operation,
+//    ) : InterpreterInstruction {
+//        override fun execute(
+//            stack: ValueStack<Value>,
+//            memory: ScalarMemory<Value>,
+//        ): Value? {
+//            val right = stack.pop() as Number
+//            val left = stack.pop() as Number
+//            val result = when(operation) {
+//                BinaryOperationNode.Operation.ADDITION -> left + right
+//            }
+//            // computeOnStackMachine
+//            // push the value on stack
+//            return null
+//        }
+//    }
 
     /**
      * Transform one sequence to another by mapping old values to new

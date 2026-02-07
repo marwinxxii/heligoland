@@ -1,5 +1,6 @@
 lexer grammar Literals;
 
+// TODO support negative numbers
 LongLiteral: DecDigit+;
 DoubleLiteral: ('-'?) DecDigit+ '.' DecDigit+;
 DecDigit: UNICODE_CLASS_ND;
