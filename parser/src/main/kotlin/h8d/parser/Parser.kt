@@ -105,6 +105,7 @@ private fun HeligolandParser.AssignmentContext.toNode() =
 private fun HeligolandParser.ExprContext.toNode() =
     number()?.toNode()
         ?: identifier()?.toNode()
+        ?: sequence()?.toNode()
         ?: error("Unsupported expression")
 
 private fun HeligolandParser.NumberContext.toNode() =
@@ -119,6 +120,13 @@ private fun HeligolandParser.IdentifierContext.toNode() =
     ExpressionNode.VariableReferenceNode(
         pointer = null,
         variableName = this.text,
+    )
+
+private fun HeligolandParser.SequenceContext.toNode(): ExpressionNode.SeqNode =
+    ExpressionNode.SeqNode(
+        pointer = null,
+        first = this.expr(0)!!.toNode(),
+        last = this.expr(1)!!.toNode(),
     )
 
 private data class ParsingErrorDescriptor(

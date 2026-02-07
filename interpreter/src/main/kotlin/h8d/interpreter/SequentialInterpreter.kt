@@ -76,8 +76,8 @@ private fun MutableInstructionsList.addInstructions(
                     .also(::add)
 
             is ExpressionNode.SeqNode -> {
-                addInstructions(node.last, context)
                 addInstructions(node.first, context)
+                addInstructions(node.last, context)
                 add(InterpreterInstruction.Seq)
             }
 
@@ -103,7 +103,12 @@ internal interface InterpreterInstruction : StackInstruction<Value> {
      */
     data class Print(private val context: ExecutionContext) : InterpreterInstruction {
         override fun execute(stack: ValueStack<Value>, memory: ScalarMemory<Value>): Value? {
-            context.output(stack.pop().toString())
+            when(val v = stack.pop()) {
+                is Sequence<*> -> v.joinToString(separator = ", ", prefix = "[", postfix = "]")
+                else -> v.toString()
+            }
+                .also(context::output)
+
             return null
         }
     }
@@ -115,9 +120,10 @@ internal interface InterpreterInstruction : StackInstruction<Value> {
         override fun execute(
             stack: ValueStack<Value>,
             memory: ScalarMemory<Value>,
-        ): Value? {
-            // read 2 values from stack and push the sequence
-            return null
+        ): Sequence<Long> {
+            val last = stack.pop() as Long
+            val first = stack.pop() as Long
+            return (first..last).asSequence()
         }
     }
 

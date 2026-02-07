@@ -14,6 +14,16 @@ private val programs = listOf(
         var b = 11
         out b
     """,
+    "out {0, 10}",
+    """
+        var f = 1
+        out {f, 10}
+    """,
+    """
+        var f = 100
+        var l = 123
+        out {f, l}
+    """,
 )
 
 // run by Kotest
