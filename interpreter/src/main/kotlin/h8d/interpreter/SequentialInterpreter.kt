@@ -1,5 +1,6 @@
 package h8d.interpreter
 
+import h8d.interpreter.InterpreterInstruction.Store
 import h8d.interpreter.memory.Address
 import h8d.interpreter.memory.ScalarMemory
 import h8d.interpreter.stackmachine.StackInstruction
@@ -33,8 +34,10 @@ internal class SequentialInterpreter : Interpreter {
         }
 }
 
+private typealias MutableInstructionsList = MutableList<StackInstruction<Value>>
+
 // Traversing the tree depth first and adding instructions to the stack
-private fun MutableList<StackInstruction<Value>>.addInstructions(
+private fun MutableInstructionsList.addInstructions(
     node: StatementNode,
     context: ExecutionContext,
 ) = apply {
@@ -51,18 +54,33 @@ private fun MutableList<StackInstruction<Value>>.addInstructions(
 
         is StatementNode.VariableAssignmentNode -> {
             addInstructions(node.expression, context)
-            add(InterpreterInstruction.Store(context.memory.allocateAddress(node.variableName)))
+            add(Store(context.memory.allocateAddress(node.variableName)))
         }
 
         is ExpressionNode -> addInstructions(node, context)
     }
 }
 
-private fun MutableList<StackInstruction<Value>>.addInstructions(node: ExpressionNode, context: ExecutionContext) =
+private fun MutableInstructionsList.addInstructions(
+    node: ExpressionNode,
+    context: ExecutionContext,
+): MutableInstructionsList =
     apply {
         when (node) {
             is ExpressionNode.NumberLiteral -> add(Push(node.value))
-//        is ExpressionNode.VariableReferenceNode -> add(Load(memory.getAddress(node.variableName)))
+
+            is ExpressionNode.VariableReferenceNode ->
+                context.memory
+                    .resolveAddressOfVariable(node.variableName)
+                    .let { StackInstruction.Load<Value>(it) }
+                    .also(::add)
+
+            is ExpressionNode.SeqNode -> {
+                addInstructions(node.last, context)
+                addInstructions(node.first, context)
+                add(InterpreterInstruction.Seq)
+            }
+
             else -> TODO("Implement the rest of expressions")
         }
     }
@@ -171,6 +189,8 @@ internal interface Memory : ScalarMemory<Value> {
     fun nextAddress(): Address
 
     fun allocateAddress(variableName: String): Address
+
+    fun resolveAddressOfVariable(variableName: String): Address
 }
 
 // TODO make it thread safe?
@@ -182,12 +202,15 @@ private class MapMemory : Memory {
     override fun isValueAvailable(address: Address): Boolean =
         values.containsKey(address)
 
-    override fun nextAddress(): Address {
-        return Address(addressPointer++)
-    }
+    override fun nextAddress(): Address = Address(addressPointer++)
 
     override fun allocateAddress(variableName: String): Address =
         variables.getOrPut(variableName, ::nextAddress)
+
+    override fun resolveAddressOfVariable(variableName: String): Address =
+        requireNotNull(variables[variableName]) {
+            "Variable $variableName was not assigned"
+        }
 
     override fun readValue(address: Address): Value =
         requireNotNull(values[address])

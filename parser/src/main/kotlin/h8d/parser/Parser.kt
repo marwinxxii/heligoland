@@ -38,8 +38,11 @@ public fun parseProgram(sourceCode: String): ParseResult {
             it.accept(object : HeligolandBaseVisitor<StatementNode?>() {
                 override fun visitPrint(ctx: HeligolandParser.PrintContext) = ctx.toNode()
 
-                override fun visitOutput(ctx: HeligolandParser.OutputContext) =
-                    ctx.toNode()
+                override fun visitOutput(ctx: HeligolandParser.OutputContext) = ctx.toNode()
+
+                override fun visitAssignment(ctx: HeligolandParser.AssignmentContext) = ctx.toNode()
+
+                override fun visitExpr(ctx: HeligolandParser.ExprContext) = ctx.toNode()
 
                 override fun defaultResult(): StatementNode? = null
             })
@@ -89,6 +92,13 @@ private fun HeligolandParser.PrintContext.toNode() =
 private fun HeligolandParser.OutputContext.toNode() =
     StatementNode.OutputNode(
         pointer = null,
+        expression = expr().toNode(),
+    )
+
+private fun HeligolandParser.AssignmentContext.toNode() =
+    StatementNode.VariableAssignmentNode(
+        pointer = null,
+        variableName = identifier().text,
         expression = expr().toNode(),
     )
 

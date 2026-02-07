@@ -8,7 +8,7 @@ import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.flow.toList
 
 internal suspend fun String.shouldExecuteAndOutput() {
-    parseProgram(this.trimIndent())
+    parseProgram(this.trimIndent().trim())
         .shouldBeInstanceOf<ParseResult.SuccessfulProgram>()
         .program
         .let(Interpreter()::execute)
