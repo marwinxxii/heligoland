@@ -4,6 +4,8 @@ import com.strumenta.antlrkotlin.runtime.BitSet
 import h8d.parser.Program.StatementNode
 import h8d.parser.Program.StatementNode.ExpressionNode
 import h8d.parser.Program.StatementNode.ExpressionNode.BinaryOperationNode
+import h8d.parser.Program.StatementNode.ExpressionNode.FunctionCallNode.MapCallNode
+import h8d.parser.Program.StatementNode.ExpressionNode.FunctionCallNode.ReduceCallNode
 import h8d.parsers.generated.HeligolandBaseVisitor
 import h8d.parsers.generated.HeligolandLexer
 import h8d.parsers.generated.HeligolandParser
@@ -107,6 +109,8 @@ private fun HeligolandParser.ExprContext.toNode() =
     number()?.toNode()
         ?: identifier()?.toNode()
         ?: sequence()?.toNode()
+        ?: mapCall()?.toNode()
+        ?: reduceCall()?.toNode()
         ?: binaryOperationNode(expr(0)!!, op()!!, expr(1)!!)
 
 private fun HeligolandParser.NumberContext.toNode() =
@@ -140,6 +144,29 @@ private fun binaryOperationNode(
         left = left.toNode(),
         operation = op.toOperation(),
         right = right.toNode(),
+    )
+
+// TODO better error messages
+private fun HeligolandParser.MapCallContext.toNode(): MapCallNode =
+    MapCallNode(
+        pointer = null,
+        sequence = this.expr(0)!!.toNode(),
+        lambda = MapCallNode.Lambda(
+            argument = this.identifier().toNode(),
+            body = this.expr(1)!!.toNode(),
+        ),
+    )
+
+private fun HeligolandParser.ReduceCallContext.toNode(): ReduceCallNode =
+    ReduceCallNode(
+        pointer = null,
+        sequence = expr(0)!!.toNode(),
+        accumulator = expr(1)!!.toNode(),
+        lambda = ReduceCallNode.Lambda(
+            itemArgument = identifier(0)!!.toNode(),
+            accumulatorArgument = identifier(1)!!.toNode(),
+            body = expr(2)!!.toNode(),
+        ),
     )
 
 private fun HeligolandParser.OpContext.toOperation() =

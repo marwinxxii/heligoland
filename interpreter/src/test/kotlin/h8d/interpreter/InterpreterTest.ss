@@ -1,19 +1,23 @@
-╔═ program execution and output-0: print "Hello, World!" ═╗
+╔═ program execution and output-a: print "Hello, World!" ═╗
 Hello, World!
-╔═ program execution and output-1: out 100 ═╗
+╔═ program execution and output-b: out 100 ═╗
 100
-╔═ program execution and output-2: var a = 20 ═╗
+╔═ program execution and output-c: var a = 20 ═╗
 
-╔═ program execution and output-3 ═╗
+╔═ program execution and output-d ═╗
 11
-╔═ program execution and output-4: out {0, 10} ═╗
+╔═ program execution and output-e: out {0, 10} ═╗
 [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-╔═ program execution and output-5 ═╗
+╔═ program execution and output-f ═╗
 [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-╔═ program execution and output-6 ═╗
+╔═ program execution and output-g ═╗
 [100, 101, 102, 103, 104, 105, 106, 107, 108, 109, 110, 111, 112, 113, 114, 115, 116, 117, 118, 119, 120, 121, 122, 123]
-╔═ program execution and output-7: out 10+20 ═╗
+╔═ program execution and output-h: out 10+20 ═╗
 30
-╔═ program execution and output-8: out 10-20 ═╗
+╔═ program execution and output-i: out 10-20 ═╗
 -10
+╔═ program execution and output-j: out map({0, 10}, i -> i+1) ═╗
+0
+╔═ program execution and output-k: out reduce({10, 20}, 100, a b -> a+b) ═╗
+0
 ╔═ [end of file] ═╗

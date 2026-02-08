@@ -27,10 +27,10 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
-    api(libs.kotlin.coroutines)
+    api(libs.kotlin.coroutines.core)
     api(project(":parser"))
+    implementation(project(":stackmachine"))
     testImplementation(libs.kotlin.kotest)
-    testImplementation(libs.kotlin.kotest.property)
     testImplementation(libs.kotlin.kotest.junit5)
     testImplementation(libs.selfie)
 }

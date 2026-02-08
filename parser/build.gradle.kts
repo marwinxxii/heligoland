@@ -29,7 +29,6 @@ tasks.withType<Test>().configureEach {
 dependencies {
     implementation(project(":grammar"))
     testImplementation(libs.kotlin.kotest)
-    testImplementation(libs.kotlin.kotest.property)
     testImplementation(libs.kotlin.kotest.junit5)
     testImplementation(libs.selfie)
 }

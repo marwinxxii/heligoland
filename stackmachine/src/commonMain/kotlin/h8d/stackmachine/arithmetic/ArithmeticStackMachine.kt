@@ -1,41 +1,42 @@
-package h8d.interpreter.stackmachine
+package h8d.stackmachine.arithmetic
 
-import h8d.interpreter.memory.ScalarMemory
-import h8d.interpreter.stackmachine.StackInstruction.ValueStack
+import h8d.stackmachine.ExecutionContext
+import h8d.stackmachine.InstructionException
+import h8d.stackmachine.StackInstruction
 import kotlin.math.pow
 
-internal sealed interface ArithmeticInstruction : StackInstruction<Number> {
-    data object Add : ArithmeticInstruction {
-        override fun execute(stack: ValueStack<Number>, memory: ScalarMemory<Number>): Number =
+public sealed interface ArithmeticInstruction : StackInstruction<Number> {
+    public data object Add : ArithmeticInstruction {
+        override fun execute(context: ExecutionContext<Number>): Number =
             binaryOperation(
-                stack,
+                context.stack,
                 forLong = { left, right -> left + right },
                 forDouble = { left, right -> left + right },
             )
     }
 
-    data object Subtract : ArithmeticInstruction {
-        override fun execute(stack: ValueStack<Number>, memory: ScalarMemory<Number>): Number =
+    public data object Subtract : ArithmeticInstruction {
+        override fun execute(context: ExecutionContext<Number>): Number =
             binaryOperation(
-                stack,
+                context.stack,
                 forLong = { left, right -> left - right },
                 forDouble = { left, right -> left - right },
             )
     }
 
-    data object Multiply : ArithmeticInstruction {
-        override fun execute(stack: ValueStack<Number>, memory: ScalarMemory<Number>): Number =
+    public data object Multiply : ArithmeticInstruction {
+        override fun execute(context: ExecutionContext<Number>): Number =
             binaryOperation(
-                stack,
+                context.stack,
                 forLong = { left, right -> left * right },
                 forDouble = { left, right -> left * right },
             )
     }
 
-    data object Divide : ArithmeticInstruction {
-        override fun execute(stack: ValueStack<Number>, memory: ScalarMemory<Number>): Number =
+    public data object Divide : ArithmeticInstruction {
+        override fun execute(context: ExecutionContext<Number>): Number =
             binaryOperation(
-                stack,
+                context.stack,
                 forLong = { left, right -> left / right },
                 forDouble = { left, right -> left / right },
             )
@@ -44,10 +45,10 @@ internal sealed interface ArithmeticInstruction : StackInstruction<Number> {
     /**
      * [Exponentiation](https://en.wikipedia.org/wiki/Exponentiation) operation.
      */
-    data object RaiseToPower : ArithmeticInstruction {
-        override fun execute(stack: ValueStack<Number>, memory: ScalarMemory<Number>): Number =
+    public data object RaiseToPower : ArithmeticInstruction {
+        override fun execute(context: ExecutionContext<Number>): Number =
             binaryOperation(
-                stack,
+                context.stack,
                 forLong = { left, right -> left.toDouble().pow(right.toDouble()).toLong() },
                 forDouble = { left, right -> left.pow(right) },
             )
@@ -56,7 +57,7 @@ internal sealed interface ArithmeticInstruction : StackInstruction<Number> {
 
 @Throws(InstructionException::class)
 private inline fun ArithmeticInstruction.binaryOperation(
-    stack: ValueStack<Number>,
+    stack: ExecutionContext.ValueStack<Number>,
     forLong: (left: Long, right: Long) -> Long,
     forDouble: (left: Double, right: Double) -> Double,
 ): Number {
@@ -64,9 +65,10 @@ private inline fun ArithmeticInstruction.binaryOperation(
     val left = stack.pop()
     return when {
         (left is Double) || (right is Double) -> forDouble(left.toDouble(), right.toDouble())
-        (left is Long) || (right is Long) -> forLong(left.toLong(), right.toLong())
+        left is Long && right is Long -> forLong(left, right)
         else -> throw InstructionException(
-            "Unsupported argument types: $left(${left::class}) $this $right(${right::class})"
+            instruction = this,
+            message = "Unsupported argument types: $left(${left::class}) $this $right(${right::class})"
         )
     }
 }

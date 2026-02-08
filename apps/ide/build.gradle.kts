@@ -20,7 +20,7 @@ kotlin {
     sourceSets {
         jvmMain {
             dependencies {
-                implementation(libs.kotlin.coroutines)
+                implementation(libs.kotlin.coroutines.core)
                 implementation(compose.desktop.currentOs)
                 implementation(project(":editor"))
             }

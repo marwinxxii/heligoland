@@ -34,29 +34,37 @@ private val validPrograms = listOf(
     """
         out 10+20
     """,
+    """
+        out map({0, 10}, i -> i+1)
+    """,
+    """
+        out reduce({0, 10}, 0, a b -> a+b)
+    """,
 )
 // run by Kotest
 @Suppress("unused")
 internal class ParserSnapshotTest : FunSpec({
     context("Invalid programs") {
         withTests(
-            nameFn = { programName(it, invalidPrograms) },
+            nameFn = { testName(it, invalidPrograms) },
             invalidPrograms,
         ) { it.shouldMatchParsingErrorsSnapshot() }
     }
     context("Valid programs") {
         withTests(
-            nameFn = { programName(it, validPrograms) },
+            nameFn = { testName(it, validPrograms) },
             validPrograms,
         ) { it.shouldMatchTreeNodesSnapshot() }
     }
 })
 
-private fun programName(p: String, programs: List<String>): String {
-    val index = programs.indexOf(p)
+private fun testName(p: String, programs: List<String>): String {
+    // https://github.com/diffplug/selfie/issues/540
+    val index = ('a' + (programs.indexOf(p) % 'a'.code)).toString()
+    // TODO handle more than 26 tests
     val program = p.trimIndent().trim()
     return if (program.contains('\n')) {
-        "$index"
+        index
     } else {
         "$index: $program"
     }

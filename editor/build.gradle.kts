@@ -16,6 +16,6 @@ tasks.withType<Test>().configureEach {
 }
 
 dependencies {
-    api(libs.kotlin.coroutines)
+    api(libs.kotlin.coroutines.core)
     implementation(project(":interpreter"))
 }

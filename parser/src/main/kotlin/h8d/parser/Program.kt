@@ -54,6 +54,32 @@ public interface Program {
                     ;
                 }
             }
+
+            public sealed interface FunctionCallNode : ExpressionNode {
+                public data class MapCallNode(
+                    override val pointer: SourceCodePointer?,
+                    val sequence: ExpressionNode,
+                    val lambda: Lambda,
+                ) : FunctionCallNode {
+                    public data class Lambda(
+                        val argument: VariableReferenceNode,
+                        val body: ExpressionNode,
+                    )
+                }
+
+                public data class ReduceCallNode(
+                    override val pointer: SourceCodePointer?,
+                    val sequence: ExpressionNode,
+                    val accumulator: ExpressionNode,
+                    val lambda: Lambda,
+                ) : FunctionCallNode {
+                    public data class Lambda(
+                        val itemArgument: VariableReferenceNode,
+                        val accumulatorArgument: VariableReferenceNode,
+                        val body: ExpressionNode,
+                    )
+                }
+            }
         }
     }
 }

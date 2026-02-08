@@ -1,9 +1,11 @@
-package h8d.interpreter.stackmachine
+package h8d.stackmachine.arithmetic
 
-import h8d.interpreter.memory.ScalarMemory
-import h8d.interpreter.stackmachine.ArithmeticInstruction.Add
-import h8d.interpreter.stackmachine.ArithmeticInstruction.Subtract
-import h8d.interpreter.stackmachine.StackInstruction.Push
+import h8d.stackmachine.StackInstruction
+import h8d.stackmachine.StackInstruction.Push
+import h8d.stackmachine.arithmetic.ArithmeticInstruction.Add
+import h8d.stackmachine.arithmetic.ArithmeticInstruction.Subtract
+import h8d.stackmachine.computeStack
+import io.kotest.assertions.throwables.shouldThrowAny
 import io.kotest.core.spec.style.FunSpec
 import io.kotest.datatest.withTests
 import io.kotest.matchers.doubles.shouldBeGreaterThanOrEqual
@@ -34,7 +36,7 @@ internal class ArithmeticStackMachineTest : FunSpec({
             ),
         ) {
             val (instructions, expected) = it
-            computeOnStackMachine(instructions, ScalarMemory.empty()) shouldBe expected
+            instructions.shouldComputeSingleValue(expected)
         }
     }
     context("Subtraction") {
@@ -58,7 +60,7 @@ internal class ArithmeticStackMachineTest : FunSpec({
             ),
         ) { testCase ->
             val (instructions, expected) = testCase
-            computeOnStackMachine(instructions, ScalarMemory.empty()).also {
+            instructions.shouldComputeSingleValue().also {
                 when (it) {
                     is Double -> it.shouldBeEqualWithTolerance(expected.toDouble())
                     else -> it shouldBe expected
@@ -99,3 +101,13 @@ private val StackInstruction<*>.name: String
             is Push<*> -> value.toString()
             else -> toString()
         }
+
+private suspend fun List<StackInstruction<Number>>.shouldComputeSingleValue(expected: Number) {
+    shouldComputeSingleValue() shouldBe expected
+}
+
+private suspend fun List<StackInstruction<Number>>.shouldComputeSingleValue(): Number =
+    computeStack(this).let { stack ->
+        stack.pop()
+            .also { shouldThrowAny { stack.pop() } }
+    }
