@@ -16,6 +16,9 @@ internal value class ListBasedStack<V : Any>(
         return list.removeLast()
     }
 
+    // TODO better error message
+    override fun peek(index: Int): V = list[index]
+
     fun push(value: V) {
         list.add(value)
     }

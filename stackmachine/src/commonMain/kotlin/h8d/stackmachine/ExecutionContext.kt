@@ -7,6 +7,8 @@ public sealed interface ExecutionContext<V : Any> {
 
     public sealed interface ValueStack<V : Any> {
         public fun pop(): V
+
+        public fun peek(index: Int): V
     }
 
     public interface Extension<V : Any>
@@ -17,6 +19,10 @@ public fun <V : Any> ExecutionContext(): ExecutionContext<V> =
 
 public fun <V : Any> ExecutionContext(vararg extension: ExecutionContext.Extension<V>): ExecutionContext<V> =
     DefaultExecutionContext(extension.toSet())
+
+public fun <V : Any> ExecutionContext(
+    extensions: Set<ExecutionContext.Extension<V>>,
+): ExecutionContext<V> = DefaultExecutionContext(extensions)
 
 public inline fun <V : Any, reified T : ExecutionContext.Extension<V>> ExecutionContext<V>.getExtension(): T =
     extensions.firstNotNullOf { it as? T }

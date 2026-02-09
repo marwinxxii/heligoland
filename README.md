@@ -11,13 +11,14 @@ Micro language, interpreter and IDE.
    - `map` and reduce operations can't be used inside the lambda
 5. `reduce` cannot be parallelised for every case, only for associative operations
 6. No garbage collection
+7. Sequences are lazy and evaluated only at collection
 
 ## Clarifications:
 - Q: Can ANTLR be used? A: Yes, as any other normal library
 - Q: Are there any requirements about parallelization of the map/reduce computation? There could be multiple different strategies for this.
 
 ## Important notes
-1. Snapshot tests in `:parser` module rely on the [unreleased fix in selfie](https://github.com/diffplug/selfie/pull/559)
+1. Snapshot tests in `:parser` and `:interpreter` modules rely on the [unreleased fix in selfie](https://github.com/diffplug/selfie/pull/559)
     - Note: this snapshot can't be published on JDK 25 (Dokkatoo fails), 21 can be used instead
 2. Selfie does not support snapshot tests for parameterized tests for Kotest,
 see [local fix](selfie-parameterized-tests.patch)

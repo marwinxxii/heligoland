@@ -6,7 +6,7 @@ import kotlin.coroutines.coroutineContext
 @Throws(InstructionException::class)
 public suspend fun <V : Any, I : StackInstruction<V>> computeStack(
     instructions: Iterable<I>,
-    context: ExecutionContext<V> = DefaultExecutionContext(emptySet()),
+    context: ExecutionContext<V> = DefaultExecutionContext(extensions = emptySet()),
     onEach: suspend (instruction: I, pointer: Int, stack: Iterable<V>) -> Unit = { _, _, _ -> },
 ): ExecutionContext.ValueStack<V> {
     context as DefaultExecutionContext<V>

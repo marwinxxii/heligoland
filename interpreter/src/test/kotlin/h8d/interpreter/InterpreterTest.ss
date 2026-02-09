@@ -17,7 +17,7 @@ Hello, World!
 ╔═ program execution and output-i: out 10-20 ═╗
 -10
 ╔═ program execution and output-j: out map({0, 10}, i -> i+1) ═╗
-0
+[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
 ╔═ program execution and output-k: out reduce({10, 20}, 100, a b -> a+b) ═╗
 0
 ╔═ [end of file] ═╗
