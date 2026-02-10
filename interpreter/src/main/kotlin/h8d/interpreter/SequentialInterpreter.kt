@@ -111,8 +111,10 @@ private fun MutableInstructionsList.addInstructions(
         is ExpressionNode.FunctionCallNode.ReduceCallNode -> {
             addInstructions(node.sequence, onReadVariable)
             addInstructions(node.accumulator, onReadVariable)
-            // TODO pass arguments
-            add(InterpreterInstruction.ReduceSeq(node.lambda.body))
+            InterpreterInstruction.ReduceSeq(
+                expression = node.lambda.body,
+                accumulatorArgumentName = node.lambda.accumulatorArgument.variableName,
+            ).also(::add)
         }
     }
 }
@@ -196,20 +198,48 @@ internal sealed interface InterpreterInstruction : StackInstruction<Value> {
     /**
      * Compute the value from the sequence by reducing it to a single element.
      */
-    class ReduceSeq(private val expression: ExpressionNode) : InterpreterInstruction {
+    class ReduceSeq(
+        private val expression: ExpressionNode,
+        private val accumulatorArgumentName: String,
+    ) : InterpreterInstruction {
         // TODO runtime type checks
         @Suppress("UNCHECKED_CAST")
         override fun execute(context: ExecutionContext<Value>): Value? {
             val accumulator = context.stack.pop() as Number
             val sequence = context.stack.pop() as Sequence<Number>
-//            return context.evaluateToIterable(sequence)
-//                .fold(accumulator) { accumulator, item -> accumulator }
-            return 0
+            return context.evaluateToIterable(sequence)
+                .fold(accumulator) { accumulator, item ->
+                    val instructions = mutableListOf<StackInstruction<Value>>(
+                        Push(accumulator),
+                        Push(item),
+                    )
+                    instructions.addInstructions(
+                        expression,
+                        onReadVariable = {
+                            Copy(
+                                if (it.variableName == accumulatorArgumentName) {
+                                    0
+                                } else {
+                                    1
+                                }
+                            )
+                        },
+                    )
+                    runBlocking {
+                        computeStack(
+                            instructions,
+                            ExecutionContext(context.extensions),
+                        ).pop() as Number
+                    }
+                }
         }
     }
 
     /**
      * Copy value from the bottom of the stack + [argumentIndex] to the top.
+     *
+     * @param argumentIndex-index/offset from the bottom of the stack
+     * where the target value to copy is. Starts with zero.
      */
     data class Copy(private val argumentIndex: Int) : InterpreterInstruction {
         override fun execute(context: ExecutionContext<Value>): Value? =
