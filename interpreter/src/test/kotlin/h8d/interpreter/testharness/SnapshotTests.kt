@@ -7,11 +7,11 @@ import h8d.parser.parseProgram
 import io.kotest.matchers.types.shouldBeInstanceOf
 import kotlinx.coroutines.flow.toList
 
-internal suspend fun String.shouldExecuteAndOutput() {
+internal suspend fun String.shouldExecuteAndOutput(parallelFactor: Int) {
     parseProgram(this.trimIndent().trim())
         .shouldBeInstanceOf<ParseResult.SuccessfulProgram>()
         .program
-        .let(Interpreter()::execute)
+        .let(Interpreter(parallelFactor)::execute)
         .toList()
         .joinToString("\n")
         .also { shouldMatchSnapshot(actual = it) }

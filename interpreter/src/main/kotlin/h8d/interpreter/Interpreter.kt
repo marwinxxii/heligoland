@@ -13,7 +13,7 @@ public interface Interpreter {
     public fun execute(program: Program): Flow<String>
 }
 
-public fun Interpreter(): Interpreter = SequentialInterpreter()
+public fun Interpreter(parallelFactor: Int = 1): Interpreter = SequentialInterpreter(parallelFactor)
 
 public fun Interpreter.executeBlocking(program: Program): String =
     runBlocking {

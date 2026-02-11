@@ -45,7 +45,13 @@ internal class InterpreterTest : FunSpec({
         withTests(
             nameFn =  { testName(it, programs) },
             programs,
-        ) { it.shouldExecuteAndOutput() }
+        ) { it.shouldExecuteAndOutput(parallelFactor = 1) }
+    }
+    context("parallel execution and output") {
+        withTests(
+            nameFn =  { testName(it, programs) },
+            programs,
+        ) { it.shouldExecuteAndOutput(parallelFactor = 3) }
     }
 })
 

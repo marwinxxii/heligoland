@@ -1,13 +1,16 @@
 package h8d.interpreter
 
-import h8d.interpreter.stackmachine.sequence.SequenceEvaluationStrategy
-import h8d.interpreter.stackmachine.sequence.evaluateToIterable
+import h8d.interpreter.stackmachine.sequence.SequenceComputationStrategy
+import h8d.interpreter.stackmachine.sequence.computeToIterable
 import h8d.interpreter.stackmachine.memory.AddressHolder
 import h8d.interpreter.stackmachine.memory.Load
 import h8d.interpreter.stackmachine.memory.MapMemory
 import h8d.interpreter.stackmachine.memory.Store
 import h8d.interpreter.stackmachine.output.OutputHolder
 import h8d.interpreter.stackmachine.output.output
+import h8d.interpreter.stackmachine.sequence.IndexedSequence
+import h8d.interpreter.stackmachine.sequence.LazySequence
+import h8d.interpreter.stackmachine.sequence.PredefinedNumberSequence
 import h8d.parser.Program
 import h8d.parser.Program.StatementNode
 import h8d.parser.Program.StatementNode.ExpressionNode
@@ -25,14 +28,14 @@ import kotlinx.coroutines.runBlocking
  * Interpreter which executes all instructions sequentially using
  * a hybrid stack machine with addressable memory.
  */
-internal class SequentialInterpreter : Interpreter {
+internal class SequentialInterpreter(private val parallelFactor: Int) : Interpreter {
     override fun execute(program: Program): Flow<String> =
         flow {
             val output = OutputHolder<Value>()
             val context = ExecutionContext(
                 MapMemory(),
                 output,
-                SequenceEvaluationStrategy.sequential(),
+                SequenceComputationStrategy.parallel(parallelFactor = parallelFactor),
             )
             val instructions = compileToInstructions(program.nodes, AddressHolder())
             computeStack(instructions, context) { _, _, _ ->
@@ -146,8 +149,8 @@ internal sealed interface InterpreterInstruction : StackInstruction<Value> {
             @Suppress("UNCHECKED_CAST")
             when (val v = context.stack.pop()) {
                 // move parallelisation to context extension?
-                is Sequence<*> -> context
-                    .evaluateToIterable(v as Sequence<Any>)
+                is IndexedSequence<*> -> context
+                    .computeToIterable(v as IndexedSequence<Any>)
                     .joinToString(separator = ", ", prefix = "[", postfix = "]")
 
                 else -> v.toString()
@@ -159,13 +162,13 @@ internal sealed interface InterpreterInstruction : StackInstruction<Value> {
     }
 
     /**
-     * Generate sequence object.
+     * Generate a sequence of [Long] numbers.
      */
     data object Seq : InterpreterInstruction {
-        override fun execute(context: ExecutionContext<Value>): Sequence<Long> {
+        override fun execute(context: ExecutionContext<Value>): PredefinedNumberSequence {
             val last = context.stack.pop() as Long
             val first = context.stack.pop() as Long
-            return (first..last).asSequence()
+            return PredefinedNumberSequence(first = first, last = last)
         }
     }
 
@@ -177,8 +180,8 @@ internal sealed interface InterpreterInstruction : StackInstruction<Value> {
         // TODO runtime type checks
         @Suppress("UNCHECKED_CAST")
         override fun execute(context: ExecutionContext<Value>): Value? {
-            val sequence = context.stack.pop() as Sequence<Number>
-            return sequence.map {
+            val sequence = context.stack.pop() as IndexedSequence<Number>
+            return LazySequence(sequence) {
                 // TODO can be pre-compiled
                 val instructions = mutableListOf<StackInstruction<Value>>(Push(it))
                 instructions.addInstructions(
@@ -206,8 +209,9 @@ internal sealed interface InterpreterInstruction : StackInstruction<Value> {
         @Suppress("UNCHECKED_CAST")
         override fun execute(context: ExecutionContext<Value>): Value? {
             val accumulator = context.stack.pop() as Number
-            val sequence = context.stack.pop() as Sequence<Number>
-            return context.evaluateToIterable(sequence)
+            val sequence = context.stack.pop() as IndexedSequence<Number>
+            return context
+                .computeToIterable(sequence)
                 .fold(accumulator) { accumulator, item ->
                     val instructions = mutableListOf<StackInstruction<Value>>(
                         Push(accumulator),
