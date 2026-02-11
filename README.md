@@ -9,7 +9,8 @@ Micro language, interpreter and IDE.
 3. Working only with Long and Double values for simplicity
 4. Operations are allowed only between scalar values
    - `map` and reduce operations can't be used inside the lambda
-5. `reduce` cannot be parallelised for every case, only for associative operations
+5. `reduce` cannot be parallelised for every case, only for associative operations,
+only for operations on `Long` type
 6. No garbage collection
 7. Sequences are lazy and evaluated only at collection
 
@@ -24,8 +25,9 @@ Micro language, interpreter and IDE.
 see [local fix](selfie-parameterized-tests.patch)
 
 ## TODO
-1. Finalise parser
-2. Add map + reduce execution to interpreter
-3. Run the code from IDE
-4. Add Detekt + ktlint
-5. More tests, add Kover
+1. ~~Finalise parser~~ (some minimal type checks added)
+2. Proper support for negative numbers in the grammar
+3. ~~Add map + reduce execution to interpreter~~ (reduce is not parallelised)
+4. Run the code from IDE
+5. Add Detekt + ktlint
+6. More tests, add Kover

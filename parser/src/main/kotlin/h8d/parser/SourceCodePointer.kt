@@ -9,5 +9,15 @@ public data class SourceCodePointer internal constructor(
     public data class Position internal constructor(
         val lineNumber: Int,
         val characterPosition: Int?,
-    )
+    ) {
+        override fun toString(): String = "L$lineNumber:$characterPosition"
+    }
+
+    override fun toString(): String = buildString {
+        append(start)
+        if (end != start) {
+            append('-')
+            append(end)
+        }
+    }
 }

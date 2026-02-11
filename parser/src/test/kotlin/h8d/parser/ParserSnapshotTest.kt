@@ -10,6 +10,7 @@ private val invalidPrograms = listOf(
     """
         println("Hello, World!")
     """,
+    "var a = {1.0, 9.0}",
 )
 private val validPrograms = listOf(
     """

@@ -1,6 +1,6 @@
 package h8d.editor
 
-import h8d.parser.ParsingError
+import h8d.parser.SourceCodeError
 import h8d.parser.validateSourceCode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
@@ -28,7 +28,7 @@ internal class EditorImpl(
                 .collect {
                     state.value = StateImpl(
                         text = it,
-                        errors = validateSourceCode(it).map(ParsingError::toStateModel),
+                        errors = validateSourceCode(it).map(SourceCodeError::toStateModel),
                     )
                 }
         }
@@ -44,7 +44,7 @@ internal class EditorImpl(
     }
 }
 
-private fun ParsingError.toStateModel() =
+private fun SourceCodeError.toStateModel() =
     StateImpl.ErrorImpl(
         lineNumber = pointer?.start?.lineNumber?.toUInt() ?: 1U,
         spanStart = pointer?.start?.characterPosition?.toUInt() ?: 1U,

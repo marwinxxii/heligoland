@@ -15,10 +15,11 @@ import org.antlr.v4.kotlinruntime.Parser
 import org.antlr.v4.kotlinruntime.RecognitionException
 import org.antlr.v4.kotlinruntime.Recognizer
 import org.antlr.v4.kotlinruntime.StringCharStream
+import org.antlr.v4.kotlinruntime.ast.Position
 import org.antlr.v4.kotlinruntime.atn.ATNConfigSet
 import org.antlr.v4.kotlinruntime.dfa.DFA
 
-public sealed interface ParsingError {
+public sealed interface SourceCodeError {
     public val pointer: SourceCodePointer?
     public val message: String
 }
@@ -28,7 +29,7 @@ public sealed interface ParseResult {
     public data class SuccessfulProgram internal constructor(val program: Program) : ParseResult
 
     @ConsistentCopyVisibility
-    public data class Error internal constructor(val errors: List<ParsingError>) : ParseResult
+    public data class Error internal constructor(val errors: List<SourceCodeError>) : ParseResult
 }
 
 public fun parseProgram(sourceCode: String): ParseResult {
@@ -38,17 +39,12 @@ public fun parseProgram(sourceCode: String): ParseResult {
 //        .also { it.exception?.also(errorCollector::onErrorFromNode) }
         .children
         ?.mapNotNull {
-            it.accept(object : HeligolandBaseVisitor<StatementNode?>() {
-                override fun visitPrint(ctx: HeligolandParser.PrintContext) = ctx.toNode()
-
-                override fun visitOutput(ctx: HeligolandParser.OutputContext) = ctx.toNode()
-
-                override fun visitAssignment(ctx: HeligolandParser.AssignmentContext) = ctx.toNode()
-
-                override fun visitExpr(ctx: HeligolandParser.ExprContext) = ctx.toNode()
-
-                override fun defaultResult(): StatementNode? = null
-            })
+            try {
+                it.accept(Visitor)
+            } catch (e: TypeError) {
+                errorCollector.typeError(e)
+                null
+            }
         }
         ?.takeIf { it.isNotEmpty() }
         .let { nodes ->
@@ -67,7 +63,19 @@ public fun parseProgram(sourceCode: String): ParseResult {
         }
 }
 
-public fun validateSourceCode(sourceCode: String): List<ParsingError> =
+private object Visitor : HeligolandBaseVisitor<StatementNode?>() {
+    override fun visitPrint(ctx: HeligolandParser.PrintContext) = ctx.toNode()
+
+    override fun visitOutput(ctx: HeligolandParser.OutputContext) = ctx.toNode()
+
+    override fun visitAssignment(ctx: HeligolandParser.AssignmentContext) = ctx.toNode()
+
+    override fun visitExpr(ctx: HeligolandParser.ExprContext) = ctx.toNode()
+
+    override fun defaultResult(): StatementNode? = null
+}
+
+public fun validateSourceCode(sourceCode: String): List<SourceCodeError> =
     ParsingErrorCollector().also { sourceCode.toParser(it).program() }
         // TODO add tree validation
         .collectedErrors
@@ -128,11 +136,35 @@ private fun HeligolandParser.IdentifierContext.toNode() =
     )
 
 private fun HeligolandParser.SequenceContext.toNode(): ExpressionNode.SeqNode =
-    ExpressionNode.SeqNode(
-        pointer = null,
-        first = this.expr(0)!!.toNode(),
-        last = this.expr(1)!!.toNode(),
+    position?.toPointer().let { pointer ->
+        ExpressionNode.SeqNode(
+            pointer = pointer,
+            first = this.expr(0)!!.toNode().requireLongNumberLiteral(pointer),
+            last = this.expr(1)!!.toNode().requireLongNumberLiteral(pointer),
+        )
+    }
+
+private fun Position.toPointer() =
+    SourceCodePointer(
+        start = SourceCodePointer.Position(
+            lineNumber = start.line,
+            characterPosition = start.column,
+        ),
+        end = SourceCodePointer.Position(
+            lineNumber = end.line,
+            characterPosition = end.column,
+        ),
     )
+
+private fun ExpressionNode.requireLongNumberLiteral(pointer: SourceCodePointer?) = apply {
+    // TODO point to the place in the context instead
+    (this as? ExpressionNode.NumberLiteral)?.also {
+        if (it.value !is Long) {
+            // TODO pass source code pointer
+            throw TypeError("Sequence can be generated only from Long values", pointer)
+        }
+    }
+}
 
 private fun binaryOperationNode(
     left: HeligolandParser.ExprContext,
@@ -183,12 +215,21 @@ private fun HeligolandParser.OpContext.toOperation() =
 private data class ParsingErrorDescriptor(
     override val pointer: SourceCodePointer?,
     override val message: String,
-) : ParsingError
+) : SourceCodeError {
+    override fun toString(): String = buildString {
+        append(message)
+        pointer?.also {
+            append(" (")
+            append(it)
+            append(')')
+        }
+    }
+}
 
 private class ParsingErrorCollector : ANTLRErrorListener {
-    private val errors = mutableListOf<ParsingError>()
+    private val errors = mutableListOf<SourceCodeError>()
 
-    val collectedErrors: List<ParsingError> get() = errors
+    val collectedErrors: List<SourceCodeError> get() = errors
 
 //    fun onErrorFromNode(e: RecognitionException) {
 //        errors.add(e.message!!)
@@ -237,4 +278,11 @@ private class ParsingErrorCollector : ANTLRErrorListener {
         prediction: Int,
         configs: ATNConfigSet,
     ) = Unit
+
+    fun typeError(error: TypeError) {
+        errors.add(ParsingErrorDescriptor(error.pointer, error.message!!))
+    }
 }
+
+public class TypeError(message: String, public val pointer: SourceCodePointer?) :
+    RuntimeException(message)
