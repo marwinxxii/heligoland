@@ -1,6 +1,7 @@
 package h8d.editor
 
 import kotlinx.coroutines.CoroutineDispatcher
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.StateFlow
 
 /**
@@ -16,6 +17,20 @@ public interface Editor {
      * Update the state of the editor and trigger the analysis of the code.
      */
     public fun submitUpdate(code: String)
+
+    /**
+     * Execute the latest submitted code and stream the output.
+     *
+     * Result and the output can be observed in the [executionState].
+     */
+    public fun executeCode()
+
+    /**
+     * Stop the currently executed program.
+     */
+    public fun stopProgram()
+
+    public val executionState: StateFlow<ExecutionState>
 
     public sealed interface State {
         public val text: String
@@ -36,6 +51,11 @@ public interface Editor {
 
             public val message: String
         }
+    }
+
+    public sealed interface ExecutionState {
+        public class Running(public val output: Flow<String>) : ExecutionState
+        public data object Idle : ExecutionState
     }
 }
 

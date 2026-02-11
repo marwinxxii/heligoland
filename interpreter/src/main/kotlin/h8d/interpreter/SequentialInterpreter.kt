@@ -1,7 +1,5 @@
 package h8d.interpreter
 
-import h8d.interpreter.stackmachine.sequence.SequenceComputationStrategy
-import h8d.interpreter.stackmachine.sequence.computeToIterable
 import h8d.interpreter.stackmachine.memory.AddressHolder
 import h8d.interpreter.stackmachine.memory.Load
 import h8d.interpreter.stackmachine.memory.MapMemory
@@ -11,6 +9,8 @@ import h8d.interpreter.stackmachine.output.output
 import h8d.interpreter.stackmachine.sequence.IndexedSequence
 import h8d.interpreter.stackmachine.sequence.LazySequence
 import h8d.interpreter.stackmachine.sequence.PredefinedNumberSequence
+import h8d.interpreter.stackmachine.sequence.SequenceComputationStrategy
+import h8d.interpreter.stackmachine.sequence.computeToIterable
 import h8d.parser.Program
 import h8d.parser.Program.StatementNode
 import h8d.parser.Program.StatementNode.ExpressionNode
@@ -29,13 +29,17 @@ import kotlinx.coroutines.runBlocking
  * a hybrid stack machine with addressable memory.
  */
 internal class SequentialInterpreter(private val parallelFactor: Int) : Interpreter {
+    private val computationStrategy by lazy {
+        SequenceComputationStrategy.parallel<Value>(parallelFactor = parallelFactor)
+    }
+
     override fun execute(program: Program): Flow<String> =
         flow {
             val output = OutputHolder<Value>()
             val context = ExecutionContext(
                 MapMemory(),
                 output,
-                SequenceComputationStrategy.parallel(parallelFactor = parallelFactor),
+                computationStrategy,
             )
             val instructions = compileToInstructions(program.nodes, AddressHolder())
             computeStack(instructions, context) { _, _, _ ->

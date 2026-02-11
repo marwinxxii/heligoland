@@ -1,14 +1,24 @@
 package h8d.editor
 
+import h8d.interpreter.Interpreter
+import h8d.parser.ParseResult
 import h8d.parser.SourceCodeError
+import h8d.parser.parseProgram
 import h8d.parser.validateSourceCode
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.transformLatest
 import kotlinx.coroutines.launch
 
 internal class EditorImpl(
@@ -37,6 +47,61 @@ internal class EditorImpl(
     override fun submitUpdate(code: String) {
         updatesConsumerJob.isActive // trigger observation
         updates.trySend(code)
+    }
+
+    // false positive in Kotlin 2.3.0
+    @Suppress("RedundantModalityModifier")
+    final override val executionState: StateFlow<Editor.ExecutionState>
+        field = MutableStateFlow<Editor.ExecutionState>(Editor.ExecutionState.Idle)
+
+    private val executable = Channel<String?>(Channel.CONFLATED)
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val executionJob by lazy {
+        scope.launch {
+            val interpreter = Interpreter(parallelFactor = 2)
+            executable.receiveAsFlow()
+                .transformLatest<String?, Flow<String>?> { code ->
+                    code?.let(::parseProgram)
+                        ?.let { it as? ParseResult.SuccessfulProgram }
+                        ?.program
+                        ?.let(interpreter::execute)
+                        ?.also { println("Executing $code") }
+                        ?.onCompletion { setIdle() }
+                        ?.also { emit(it) }
+                }
+                .catch {
+                    emit(flowOf(it.message.orEmpty(), it.stackTraceToString()))
+                }
+                .collect {
+                    if (it != null) {
+                        executionState.value = Editor.ExecutionState.Running(it)
+                    } else {
+                        setIdle()
+                    }
+                }
+        }
+    }
+
+    override fun executeCode() {
+        state.value
+            .takeIf { it.errors.isEmpty() && it.text.isNotBlank() }
+            ?.also { state ->
+                if (executionState.value is Editor.ExecutionState.Idle) {
+                    executionState.value = Editor.ExecutionState.Running(emptyFlow())
+                    executionJob.isActive
+                    executable.trySend(state.text)
+                }
+            }
+//            ?: println(state.value)
+    }
+
+    override fun stopProgram() {
+        executable.trySend(null)
+    }
+
+    private fun setIdle() {
+        executionState.value = Editor.ExecutionState.Idle
     }
 
     override fun close() {

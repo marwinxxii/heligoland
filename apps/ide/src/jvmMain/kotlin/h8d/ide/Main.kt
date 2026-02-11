@@ -11,15 +11,30 @@ import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import h8d.editor.Editor
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.launch
 
+@ExperimentalCoroutinesApi
 public fun main(): Unit = application {
     val editor = Editor(Dispatchers.Default)
+    CoroutineScope(Dispatchers.Default).launch {
+        editor.executionState
+            .flatMapLatest {
+                (it as? Editor.ExecutionState.Running)
+                    ?.output
+                    ?: emptyFlow()
+            }
+            .collect(::println)
+    }
     Window(
         title = "Heligoland IDE",
         onCloseRequest = ::exitApplication,
     ) {
-        SystemMenu()
+        SystemMenu(onRun = editor::executeCode)
         MaterialTheme {
             Editor(Modifier.fillMaxSize(), editor)
         }
@@ -27,12 +42,10 @@ public fun main(): Unit = application {
 }
 
 @Composable
-private fun FrameWindowScope.SystemMenu() {
+private fun FrameWindowScope.SystemMenu(onRun: () -> Unit) {
     MenuBar {
         Menu(text = "Run") {
-            Item(text = "Run code", shortcut = KeyShortcut(Key.R, ctrl = true)) {
-                // TODO run the code
-            }
+            Item(text = "Run code", shortcut = KeyShortcut(Key.R, ctrl = true), onClick = onRun)
         }
     }
 }
