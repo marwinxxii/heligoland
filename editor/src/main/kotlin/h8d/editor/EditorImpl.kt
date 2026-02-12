@@ -60,13 +60,14 @@ internal class EditorImpl(
         scope.launch {
             val interpreter = Interpreter(parallelFactor = 2, coroutineDispatcher)
             executable.receiveAsFlow()
-                .transformLatest<String?, ExecutionState.Running?> { code ->
+                .transformLatest { code ->
                     code?.let(::parseProgram)
                         ?.let { it as? ParseResult.SuccessfulProgram }
                         ?.program
                         ?.let(interpreter::execute)
                         ?.onCompletion { setIdle() }
                         ?.also { emit(ExecutionState.Running(code = code, output = it)) }
+                        ?: emit(ExecutionState.Idle)
                 }
                 .catch {
                     emit(
@@ -79,13 +80,7 @@ internal class EditorImpl(
                         )
                     )
                 }
-                .collect {
-                    if (it != null) {
-                        executionState.value = it
-                    } else {
-                        setIdle()
-                    }
-                }
+                .collect { executionState.value = it }
         }
     }
 

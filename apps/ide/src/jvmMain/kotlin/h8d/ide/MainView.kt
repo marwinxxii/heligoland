@@ -19,11 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import h8d.editor.Editor
+import h8d.editor.Editor.ExecutionState
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.filterIsInstance
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onStart
-import kotlin.collections.plus
 
 internal enum class View {
     EDITOR,
@@ -36,7 +36,7 @@ internal enum class View {
 internal fun MainView(
     activeView: View,
     editor: Editor,
-    onRun: () -> Unit,
+    onRun: (Boolean) -> Unit,
     onSwitchView: (View) -> Unit,
 ) {
     var executionOutput by remember(editor) {
@@ -45,14 +45,17 @@ internal fun MainView(
     val executionState by editor.executionState.collectAsState()
     LaunchedEffect(editor) {
         editor.executionState
-            .filterIsInstance<Editor.ExecutionState.Running>()
             .flatMapLatest {
-                it.output.onStart { emit("Executing:\n${it.code}") }
+                if (it is ExecutionState.Running) {
+                    it.output.onStart { emit("Executing:\n${it.code}") }
+                } else {
+                    emptyFlow()
+                }
             }
             .collect { executionOutput += it }
     }
     Column(Modifier.fillMaxSize()) {
-        Toolbar(onRun, onSwitchView)
+        Toolbar(executionState, onRun, onSwitchView)
         CurrentView(activeView, executionState, executionOutput, editor)
     }
 }
@@ -60,7 +63,7 @@ internal fun MainView(
 @Composable
 private fun CurrentView(
     activeView: View,
-    executionState: Editor.ExecutionState,
+    executionState: ExecutionState,
     executionOutput: List<String>,
     editor: Editor,
 ) {
@@ -71,7 +74,11 @@ private fun CurrentView(
 }
 
 @Composable
-private fun Toolbar(onRun: () -> Unit, onSwitchView: (View) -> Unit) {
+private fun Toolbar(
+    executionState: ExecutionState,
+    onRun: (shouldRun: Boolean) -> Unit,
+    onSwitchView: (View) -> Unit,
+) {
     Row(Modifier.fillMaxWidth()) {
         Button(
             onClick = { onSwitchView(View.EDITOR) },
@@ -80,26 +87,24 @@ private fun Toolbar(onRun: () -> Unit, onSwitchView: (View) -> Unit) {
         }
         Spacer(Modifier.size(16.dp))
         Button(
-            onClick = onRun,
+            onClick = { onRun(executionState is ExecutionState.Idle) },
         ) {
-            Text("Run")
+            Text(
+                when (executionState) {
+                    is ExecutionState.Idle -> "Run"
+                    else -> "Stop execution"
+                }
+            )
         }
     }
 }
 
 @Composable
-private fun ExecutionView(state: Editor.ExecutionState, output: List<String>) {
-    Column(Modifier.fillMaxSize()) {
-        if (state is Editor.ExecutionState.Running) {
-            Text("Running:")
-        } else {
-            Text("Idle")
-        }
-        if (output.isNotEmpty()) {
-            LazyColumn(Modifier.fillMaxSize()) {
-                items(count = output.size) {
-                    Text(output[it])
-                }
+private fun ExecutionView(state: ExecutionState, output: List<String>) {
+    if (output.isNotEmpty()) {
+        LazyColumn(Modifier.fillMaxSize()) {
+            items(count = output.size) {
+                Text(output[it])
             }
         }
     }

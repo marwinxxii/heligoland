@@ -21,21 +21,26 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 @ExperimentalCoroutinesApi
 public fun main(): Unit = application {
     val editor = Editor(Dispatchers.Default)
+    editor.submitUpdate("out reduce({0, 10000000}, 1, a b -> b)")
     Window(
         title = "Heligoland IDE",
         onCloseRequest = ::exitApplication,
     ) {
         var activeView by remember { mutableStateOf(View.EDITOR) }
         val onRun = remember(editor) {
-            {
-                activeView = View.EXECUTION
-                editor.executeCode()
+            { shouldRun: Boolean ->
+                if (shouldRun) {
+                    activeView = View.EXECUTION
+                    editor.executeCode()
+                } else {
+                    editor.stopProgram()
+                }
             }
         }
         val onSwitchView = remember {
             { view: View -> activeView = view }
         }
-        SystemMenu(onRun = onRun)
+        SystemMenu(onRun = { onRun(true) })
         MaterialTheme {
             MainView(activeView, editor, onRun, onSwitchView)
         }
