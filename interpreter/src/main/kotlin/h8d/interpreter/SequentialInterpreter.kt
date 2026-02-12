@@ -20,15 +20,20 @@ import h8d.stackmachine.StackInstruction
 import h8d.stackmachine.StackInstruction.Push
 import h8d.stackmachine.arithmetic.ArithmeticInstruction
 import h8d.stackmachine.computeStack
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.runBlocking
 
 /**
  * Interpreter which executes all instructions sequentially using
  * a hybrid stack machine with addressable memory.
  */
-internal class SequentialInterpreter(private val parallelFactor: Int) : Interpreter {
+internal class SequentialInterpreter(
+    private val parallelFactor: Int,
+    private val coroutineDispatcher: CoroutineDispatcher,
+) : Interpreter {
     private val computationStrategy by lazy {
         SequenceComputationStrategy.parallel<Value>(parallelFactor = parallelFactor)
     }
@@ -46,6 +51,7 @@ internal class SequentialInterpreter(private val parallelFactor: Int) : Interpre
                 output.consume()?.also { emit(it) }
             }
         }
+            .flowOn(coroutineDispatcher)
 }
 
 private fun compileToInstructions(

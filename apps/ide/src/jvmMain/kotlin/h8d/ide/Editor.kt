@@ -43,6 +43,7 @@ internal fun Editor(modifier: Modifier, editor: Editor) {
         }
         Editor(
             modifier = Modifier.fillMaxSize(),
+            text = state.text,
             errors = errors,
             onEdit = onUpdate,
         )
@@ -74,10 +75,11 @@ private fun ErrorsView(modifier: Modifier, errors: List<Editor.State.Error>) {
 @Composable
 private fun Editor(
     modifier: Modifier,
+    text: String,
     errors: List<Editor.State.Error>,
     onEdit: (String) -> Unit,
 ) {
-    val textState = rememberTextFieldState(initialText = "")
+    val textState = rememberTextFieldState(initialText = text)
     LaunchedEffect(textState) {
         snapshotFlow { textState.text.toString() }.collect(onEdit)
     }

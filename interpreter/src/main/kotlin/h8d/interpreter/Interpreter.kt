@@ -1,6 +1,7 @@
 package h8d.interpreter
 
 import h8d.parser.Program
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.runBlocking
@@ -18,7 +19,10 @@ public interface Interpreter {
     public fun execute(program: Program): Flow<String>
 }
 
-public fun Interpreter(parallelFactor: Int = 1): Interpreter = SequentialInterpreter(parallelFactor)
+public fun Interpreter(
+    parallelFactor: Int = 1,
+    coroutineDispatcher: CoroutineDispatcher,
+): Interpreter = SequentialInterpreter(parallelFactor, coroutineDispatcher)
 
 public fun Interpreter.executeBlocking(program: Program): String =
     runBlocking {

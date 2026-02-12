@@ -54,9 +54,19 @@ public interface Editor {
     }
 
     public sealed interface ExecutionState {
-        public class Running(public val output: Flow<String>) : ExecutionState
+        public class Running(
+            public val code: String,
+            public val output: Flow<String>,
+        ) : ExecutionState
+
         public data object Idle : ExecutionState
+
+        /**
+         * Editor is about to start execution of a program.
+         */
+        public data object Pending : ExecutionState
     }
 }
 
-public fun Editor(coroutineDispatcher: CoroutineDispatcher): Editor = EditorImpl(coroutineDispatcher)
+public fun Editor(coroutineDispatcher: CoroutineDispatcher): Editor =
+    EditorImpl(coroutineDispatcher)

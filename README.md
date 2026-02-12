@@ -28,6 +28,6 @@ see [local fix](selfie-parameterized-tests.patch)
 1. ~~Finalise parser~~ (some minimal type checks added)
 2. Proper support for negative numbers in the grammar
 3. ~~Add map + reduce execution to interpreter~~ (reduce is not parallelised)
-4. Run the code from IDE
+4. ~~Run the code from IDE~~
 5. Add Detekt + ktlint
 6. More tests, add Kover

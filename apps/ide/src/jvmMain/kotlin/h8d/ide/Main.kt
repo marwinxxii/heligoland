@@ -1,9 +1,11 @@
 package h8d.ide
 
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyShortcut
 import androidx.compose.ui.window.FrameWindowScope
@@ -11,32 +13,31 @@ import androidx.compose.ui.window.MenuBar
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import h8d.editor.Editor
-import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.emptyFlow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.launch
 
+@OptIn(DelicateCoroutinesApi::class)
 @ExperimentalCoroutinesApi
 public fun main(): Unit = application {
     val editor = Editor(Dispatchers.Default)
-    CoroutineScope(Dispatchers.Default).launch {
-        editor.executionState
-            .flatMapLatest {
-                (it as? Editor.ExecutionState.Running)
-                    ?.output
-                    ?: emptyFlow()
-            }
-            .collect(::println)
-    }
     Window(
         title = "Heligoland IDE",
         onCloseRequest = ::exitApplication,
     ) {
-        SystemMenu(onRun = editor::executeCode)
+        var activeView by remember { mutableStateOf(View.EDITOR) }
+        val onRun = remember(editor) {
+            {
+                activeView = View.EXECUTION
+                editor.executeCode()
+            }
+        }
+        val onSwitchView = remember {
+            { view: View -> activeView = view }
+        }
+        SystemMenu(onRun = onRun)
         MaterialTheme {
-            Editor(Modifier.fillMaxSize(), editor)
+            MainView(activeView, editor, onRun, onSwitchView)
         }
     }
 }
